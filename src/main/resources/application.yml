@@ -1,0 +1,15 @@
+spring:
+  application:
+    name: market-data-integrity
+market-data:
+  sort:
+    # Tune from heap budget and record size; bounded to avoid loading a full archive into RAM.
+    chunk-records: 1000000
+  boundaries-file: ./config/session-boundaries.csv
+  provenance-file: ./data/provenance.tsv
+  quarantine-file: ./data/quarantine.tsv
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
