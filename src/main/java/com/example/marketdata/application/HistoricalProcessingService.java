@@ -43,11 +43,13 @@ public final class HistoricalProcessingService {
 
     public ProcessingResult process(Path path) throws Exception {
         VenueAdapter adapter = adapters.adapterFor(path);
+
         try (var stream = adapter.read(path)) {
             var filter = new QuarantiningRecordFilter(stream.iterator(), validator, quarantine, provenance);
             Iterator<MarketDataRecord> sorted = sorter.sort(filter);
             List<QualityReport> reports = new ArrayList<>();
             PeekingIterator p = new PeekingIterator(sorted);
+
             while (p.hasNext()) {
                 SequenceDomain d = p.peek().domain();
                 var boundary = boundaries.findBoundary(d);
@@ -57,6 +59,7 @@ public final class HistoricalProcessingService {
                 for (Gap g : report.gaps()) provenance.append(ProvenanceEvents.sequenceGap(d, g, path));
                 provenance.append(ProvenanceEvents.domainAnalysisCompleted(d, report, path));
             }
+
             return new ProcessingResult(filter.readCount(), filter.quarantinedCount(), List.copyOf(reports));
         }
     }

@@ -4,6 +4,7 @@ import com.example.marketdata.domain.SequenceDomain;
 import com.example.marketdata.domain.SessionBoundary;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
+
 import java.io.IOException;
 import java.nio.file.*;
 import java.util.*;
@@ -21,7 +22,8 @@ public final class ConfiguredSessionBoundaryProvider implements SessionBoundaryP
         this.boundaries = load(Path.of(file));
     }
 
-    @Override public Optional<SessionBoundary> findBoundary(SequenceDomain domain) {
+    @Override
+    public Optional<SessionBoundary> findBoundary(SequenceDomain domain) {
         return Optional.ofNullable(boundaries.get(domain));
     }
 
@@ -35,7 +37,9 @@ public final class ConfiguredSessionBoundaryProvider implements SessionBoundaryP
                 SequenceDomain d = new SequenceDomain(p[0].trim(), p[1].trim(), p[2].trim());
                 result.put(d, new SessionBoundary(d, Long.parseLong(p[3].trim()), Long.parseLong(p[4].trim())));
             });
-        } catch (IOException e) { throw new IllegalStateException("Cannot read boundaries " + path, e); }
+        } catch (IOException e) {
+            throw new IllegalStateException("Cannot read boundaries " + path, e);
+        }
         return Map.copyOf(result);
     }
 }

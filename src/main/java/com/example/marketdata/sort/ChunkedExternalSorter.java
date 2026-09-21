@@ -13,9 +13,11 @@ import java.util.*;
  */
 @Component
 public class ChunkedExternalSorter implements RecordSorter {
-    private static final Comparator<MarketDataRecord> ORDER = Comparator
-            .comparing(MarketDataRecord::domain).thenComparingLong(MarketDataRecord::sequence)
-            .thenComparing(MarketDataRecord::sourceFile).thenComparingLong(MarketDataRecord::sourceOffset);
+    private static final Comparator<MarketDataRecord> ORDER = Comparator.comparing(MarketDataRecord::domain)
+            .thenComparingLong(MarketDataRecord::sequence)
+            .thenComparing(MarketDataRecord::sourceFile)
+            .thenComparingLong(MarketDataRecord::sourceOffset);
+
     private final int chunkRecords;
 
     public ChunkedExternalSorter(@Value("${market-data.sort.chunk-records:1000000}") int chunkRecords) {
@@ -30,7 +32,11 @@ public class ChunkedExternalSorter implements RecordSorter {
         try {
             while (input.hasNext()) {
                 ArrayList<MarketDataRecord> chunk = new ArrayList<>(chunkRecords);
-                for (int i = 0; i < chunkRecords && input.hasNext(); i++) chunk.add(input.next());
+
+                for (int i = 0; i < chunkRecords && input.hasNext(); i++) {
+                    chunk.add(input.next());
+                }
+
                 chunk.sort(ORDER);
                 Path run = dir.resolve("run-%05d.bin".formatted(runs.size()));
                 writeRun(run, chunk);
