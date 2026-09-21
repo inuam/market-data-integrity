@@ -11,7 +11,9 @@ import java.time.Instant;
 import java.util.Iterator;
 import java.util.NoSuchElementException;
 
-/** Validates each record, routing failures to quarantine + provenance instead of passing them on. */
+/**
+ * Validates each record, routing failures to quarantine + provenance instead of passing them on.
+ */
 final class QuarantiningRecordFilter implements Iterator<MarketDataRecord> {
     private final Iterator<MarketDataRecord> source;
     private final RecordValidator validator;
@@ -23,15 +25,20 @@ final class QuarantiningRecordFilter implements Iterator<MarketDataRecord> {
     private boolean ready;
 
     QuarantiningRecordFilter(Iterator<MarketDataRecord> source, RecordValidator validator,
-            QuarantineRepository quarantine, ProvenanceRepository provenance) {
+                             QuarantineRepository quarantine, ProvenanceRepository provenance) {
         this.source = source;
         this.validator = validator;
         this.quarantine = quarantine;
         this.provenance = provenance;
     }
 
-    long readCount() { return readCount; }
-    long quarantinedCount() { return quarantinedCount; }
+    long readCount() {
+        return readCount;
+    }
+
+    long quarantinedCount() {
+        return quarantinedCount;
+    }
 
     private void prepare() {
         while (!ready && source.hasNext()) {
@@ -50,8 +57,14 @@ final class QuarantiningRecordFilter implements Iterator<MarketDataRecord> {
         }
     }
 
-    @Override public boolean hasNext() { prepare(); return ready; }
-    @Override public MarketDataRecord next() {
+    @Override
+    public boolean hasNext() {
+        prepare();
+        return ready;
+    }
+
+    @Override
+    public MarketDataRecord next() {
         prepare();
         if (!ready) throw new NoSuchElementException();
         ready = false;

@@ -7,4 +7,5 @@ public record QualityReport(SequenceDomain domain,
                             long observedMin, long observedMax,
                             long totalRecords, long uniqueSequences, long duplicates,
                             long outOfOrder, long missingSequences, long largestGap,
-                            List<Gap> gaps) { }
+                            List<Gap> gaps) {
+}

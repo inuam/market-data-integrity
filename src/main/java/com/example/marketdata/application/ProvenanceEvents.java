@@ -10,9 +10,12 @@ import java.nio.file.Path;
 import java.time.Instant;
 import java.util.Optional;
 
-/** Builds the ProvenanceEvents emitted during per-domain gap analysis. */
+/**
+ * Builds the ProvenanceEvents emitted during per-domain gap analysis.
+ */
 final class ProvenanceEvents {
-    private ProvenanceEvents() {}
+    private ProvenanceEvents() {
+    }
 
     static ProvenanceEvent domainAnalysisStarted(SequenceDomain domain, Optional<SessionBoundary> boundary, Path path) {
         return new ProvenanceEvent(Instant.now(), "DOMAIN_ANALYSIS_STARTED", domain,
