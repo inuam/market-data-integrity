@@ -19,17 +19,25 @@ import java.util.stream.Stream;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
-/** The real, reproducible version of the "unenforced full-consumption" coupling: HistoricalProcessingService
- *  assumes GapDetector.analyze() fully drains the DomainIterator it is given. Nothing in the GapDetector
- *  interface requires that. */
+/**
+ * The real, reproducible version of the "unenforced full-consumption" coupling: HistoricalProcessingService
+ * assumes GapDetector.analyze() fully drains the DomainIterator it is given. Nothing in the GapDetector
+ * interface requires that.
+ */
 class HistoricalProcessingServiceDomainGroupingTest {
     private final SequenceDomain d = new SequenceDomain("X", "1", "S");
-    private MarketDataRecord r(long s) { return new MarketDataRecord(d, s, 0, "ABC", 100, 1, "f", s); }
 
-    /** A GapDetector that only ever reads the first record it is handed, then stops - a valid implementation
-     *  of the interface, which says nothing about needing to consume everything. */
+    private MarketDataRecord r(long s) {
+        return new MarketDataRecord(d, s, 0, "ABC", 100, 1, "f", s);
+    }
+
+    /**
+     * A GapDetector that only ever reads the first record it is handed, then stops - a valid implementation
+     * of the interface, which says nothing about needing to consume everything.
+     */
     private static final class FirstRecordOnlyGapDetector implements GapDetector {
-        @Override public QualityReport analyze(Iterator<MarketDataRecord> it, SessionBoundary boundary) {
+        @Override
+        public QualityReport analyze(Iterator<MarketDataRecord> it, SessionBoundary boundary) {
             MarketDataRecord first = it.next();
             return new QualityReport(first.domain(), null, null, first.sequence(), first.sequence(), 1, 1, 0, 0, 0, 0, List.of());
         }
@@ -37,19 +45,37 @@ class HistoricalProcessingServiceDomainGroupingTest {
 
     private static final class FixedVenueAdapter implements VenueAdapter {
         private final List<MarketDataRecord> records;
-        FixedVenueAdapter(List<MarketDataRecord> records) { this.records = records; }
-        @Override public String venue() { return "X"; }
-        @Override public boolean supports(Path path) { return true; }
-        @Override public Stream<MarketDataRecord> read(Path path) { return records.stream(); }
+
+        FixedVenueAdapter(List<MarketDataRecord> records) {
+            this.records = records;
+        }
+
+        @Override
+        public String venue() {
+            return "X";
+        }
+
+        @Override
+        public boolean supports(Path path) {
+            return true;
+        }
+
+        @Override
+        public Stream<MarketDataRecord> read(Path path) {
+            return records.stream();
+        }
     }
 
-    /** Characterization test: documents a known bug (PLAN.md item 8), it does not assert desired behavior.
-     *  One domain with 3 records SHOULD produce one QualityReport. Because FirstRecordOnlyGapDetector never
-     *  consumes more than one record per analyze() call, HistoricalProcessingService's outer loop mistakes
-     *  each leftover record for a fresh occurrence of the same domain, producing 3 partial reports instead.
-     *  If this test starts failing because reports() now has size 1, item 8 has been fixed - update this
-     *  test (and PLAN.md) to reflect the fix rather than reverting the fix. */
-    @Test void detectorNotFullyConsumingADomainSilentlySplitsItIntoMultiplePartialReports() throws Exception {
+    /**
+     * Characterization test: documents a known bug (PLAN.md item 8), it does not assert desired behavior.
+     * One domain with 3 records SHOULD produce one QualityReport. Because FirstRecordOnlyGapDetector never
+     * consumes more than one record per analyze() call, HistoricalProcessingService's outer loop mistakes
+     * each leftover record for a fresh occurrence of the same domain, producing 3 partial reports instead.
+     * If this test starts failing because reports() now has size 1, item 8 has been fixed - update this
+     * test (and PLAN.md) to reflect the fix rather than reverting the fix.
+     */
+    @Test
+    void detectorNotFullyConsumingADomainSilentlySplitsItIntoMultiplePartialReports() throws Exception {
         List<MarketDataRecord> records = List.of(r(1), r(2), r(3));
         var service = new HistoricalProcessingService(
                 new VenueAdapterRegistry(List.of(new FixedVenueAdapter(records))),
@@ -57,8 +83,10 @@ class HistoricalProcessingServiceDomainGroupingTest {
                 new FirstRecordOnlyGapDetector(),
                 rec -> ValidationResult.ok(),
                 domainArg -> Optional.empty(),
-                event -> { },
-                rejected -> { });
+                event -> {
+                },
+                rejected -> {
+                });
 
         var result = service.process(Path.of("irrelevant.csv"));
 

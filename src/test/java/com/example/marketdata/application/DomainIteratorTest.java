@@ -14,9 +14,13 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 class DomainIteratorTest {
     private final SequenceDomain a = new SequenceDomain("A", "1", "S");
     private final SequenceDomain b = new SequenceDomain("B", "1", "S");
-    private MarketDataRecord r(SequenceDomain d, long s) { return new MarketDataRecord(d, s, 0, "ABC", 100, 1, "f", s); }
 
-    @Test void yieldsOnlyRecordsBelongingToTheGivenDomain() {
+    private MarketDataRecord r(SequenceDomain d, long s) {
+        return new MarketDataRecord(d, s, 0, "ABC", 100, 1, "f", s);
+    }
+
+    @Test
+    void yieldsOnlyRecordsBelongingToTheGivenDomain() {
         var peeking = new PeekingIterator(List.of(r(a, 1), r(a, 2), r(b, 1)).iterator());
         var domainIt = new DomainIterator(peeking, a);
 
@@ -26,7 +30,8 @@ class DomainIteratorTest {
         assertThat(got).containsExactly(1L, 2L);
     }
 
-    @Test void leavesTheNextDomainsFirstRecordUnconsumedForTheCaller() {
+    @Test
+    void leavesTheNextDomainsFirstRecordUnconsumedForTheCaller() {
         var peeking = new PeekingIterator(List.of(r(a, 1), r(b, 1)).iterator());
         var domainIt = new DomainIterator(peeking, a);
         while (domainIt.hasNext()) domainIt.next();
@@ -34,7 +39,8 @@ class DomainIteratorTest {
         assertThat(peeking.peek().domain()).isEqualTo(b);
     }
 
-    @Test void throwsWhenAskedForMoreThanTheDomainContains() {
+    @Test
+    void throwsWhenAskedForMoreThanTheDomainContains() {
         var peeking = new PeekingIterator(List.of(r(a, 1)).iterator());
         var domainIt = new DomainIterator(peeking, a);
         domainIt.next();

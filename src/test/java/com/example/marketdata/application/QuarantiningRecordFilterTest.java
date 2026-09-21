@@ -16,14 +16,20 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 class QuarantiningRecordFilterTest {
     private final SequenceDomain d = new SequenceDomain("X", "1", "S");
-    private MarketDataRecord r(long s) { return new MarketDataRecord(d, s, 0, "ABC", 100, 1, "f", s); }
 
-    @Test void passesThroughOnlyRecordsTheValidatorAccepts() {
+    private MarketDataRecord r(long s) {
+        return new MarketDataRecord(d, s, 0, "ABC", 100, 1, "f", s);
+    }
+
+    @Test
+    void passesThroughOnlyRecordsTheValidatorAccepts() {
         var filter = new QuarantiningRecordFilter(
                 List.of(r(1), r(2), r(3)).iterator(),
                 rec -> rec.sequence() == 2 ? ValidationResult.invalid("bad") : ValidationResult.ok(),
-                rec -> {},
-                event -> {});
+                rec -> {
+                },
+                event -> {
+                });
 
         List<Long> passed = new ArrayList<>();
         while (filter.hasNext()) passed.add(filter.next().sequence());
@@ -31,13 +37,15 @@ class QuarantiningRecordFilterTest {
         assertThat(passed).containsExactly(1L, 3L);
     }
 
-    @Test void quarantinesRejectedRecordsWithTheirReason() {
+    @Test
+    void quarantinesRejectedRecordsWithTheirReason() {
         List<QuarantinedRecord> quarantined = new ArrayList<>();
         var filter = new QuarantiningRecordFilter(
                 List.of(r(1)).iterator(),
                 rec -> ValidationResult.invalid("bad price"),
                 quarantined::add,
-                event -> {});
+                event -> {
+                });
 
         assertThat(filter.hasNext()).isFalse();
         assertThat(quarantined).hasSize(1);
@@ -45,12 +53,14 @@ class QuarantiningRecordFilterTest {
         assertThat(quarantined.get(0).record().sequence()).isEqualTo(1);
     }
 
-    @Test void appendsAProvenanceEventForEachRejectedRecord() {
+    @Test
+    void appendsAProvenanceEventForEachRejectedRecord() {
         List<ProvenanceEvent> events = new ArrayList<>();
         var filter = new QuarantiningRecordFilter(
                 List.of(r(1)).iterator(),
                 rec -> ValidationResult.invalid("bad price"),
-                rec -> {},
+                rec -> {
+                },
                 events::add);
 
         filter.hasNext();
@@ -60,12 +70,15 @@ class QuarantiningRecordFilterTest {
         assertThat(events.get(0).detail()).isEqualTo("bad price");
     }
 
-    @Test void tracksReadAndQuarantinedCounts() {
+    @Test
+    void tracksReadAndQuarantinedCounts() {
         var filter = new QuarantiningRecordFilter(
                 List.of(r(1), r(2), r(3)).iterator(),
                 rec -> rec.sequence() == 2 ? ValidationResult.invalid("bad") : ValidationResult.ok(),
-                rec -> {},
-                event -> {});
+                rec -> {
+                },
+                event -> {
+                });
 
         while (filter.hasNext()) filter.next();
 
@@ -73,12 +86,15 @@ class QuarantiningRecordFilterTest {
         assertThat(filter.quarantinedCount()).isEqualTo(1);
     }
 
-    @Test void throwsWhenNextCalledWithNoValidRecordsRemaining() {
+    @Test
+    void throwsWhenNextCalledWithNoValidRecordsRemaining() {
         var filter = new QuarantiningRecordFilter(
                 List.of(r(1)).iterator(),
                 rec -> ValidationResult.invalid("bad"),
-                rec -> {},
-                event -> {});
+                rec -> {
+                },
+                event -> {
+                });
 
         assertThatThrownBy(filter::next).isInstanceOf(NoSuchElementException.class);
     }

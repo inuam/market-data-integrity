@@ -16,7 +16,8 @@ class ProvenanceEventsTest {
     private final SequenceDomain d = new SequenceDomain("X", "1", "S");
     private final Path path = Path.of("archive.csv");
 
-    @Test void domainAnalysisStartedRecordsTheAuthoritativeBoundaryWhenPresent() {
+    @Test
+    void domainAnalysisStartedRecordsTheAuthoritativeBoundaryWhenPresent() {
         var boundary = new SessionBoundary(d, 100, 200);
         var event = ProvenanceEvents.domainAnalysisStarted(d, Optional.of(boundary), path);
 
@@ -26,7 +27,8 @@ class ProvenanceEventsTest {
         assertThat(event.detail()).isEqualTo("authoritative boundary available");
     }
 
-    @Test void domainAnalysisStartedRecordsAbsenceOfABoundary() {
+    @Test
+    void domainAnalysisStartedRecordsAbsenceOfABoundary() {
         var event = ProvenanceEvents.domainAnalysisStarted(d, Optional.empty(), path);
 
         assertThat(event.sequenceFrom()).isNull();
@@ -34,7 +36,8 @@ class ProvenanceEventsTest {
         assertThat(event.detail()).isEqualTo("authoritative boundary unavailable");
     }
 
-    @Test void sequenceGapCarriesTheGapsRangeAndMissingCount() {
+    @Test
+    void sequenceGapCarriesTheGapsRangeAndMissingCount() {
         var gap = new Gap(d, 10, 12);
         var event = ProvenanceEvents.sequenceGap(d, gap, path);
 
@@ -44,7 +47,8 @@ class ProvenanceEventsTest {
         assertThat(event.detail()).isEqualTo("missing=3");
     }
 
-    @Test void domainAnalysisCompletedSummarizesTheReport() {
+    @Test
+    void domainAnalysisCompletedSummarizesTheReport() {
         var report = new QualityReport(d, null, null, 1, 5, 5, 4, 1, 0, 0, 0, List.of());
         var event = ProvenanceEvents.domainAnalysisCompleted(d, report, path);
 

@@ -71,7 +71,8 @@ flowchart TB
 2. Keep code clean with clear separation of concerns
 3. Ensure classes are immutable
 4. Use SOLID principles to keep code clean
-5. Always write unit and integration tests that test behaviour and not methods. Write the in a BDD style
+5. Keep clean abstraction layers so it simple so the design is supple, easy to change with affecting other layers
+6. Always write unit and integration tests that test behaviour and not methods. Write the in a BDD style
  
 
 ## Commands
