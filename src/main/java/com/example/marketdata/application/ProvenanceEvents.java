@@ -8,7 +8,6 @@ import com.example.marketdata.provenance.ProvenanceEvent;
 
 import java.nio.file.Path;
 import java.time.Instant;
-import java.util.Optional;
 
 /**
  * Builds the ProvenanceEvents emitted during per-domain gap analysis.
@@ -17,12 +16,12 @@ final class ProvenanceEvents {
     private ProvenanceEvents() {
     }
 
-    static ProvenanceEvent domainAnalysisStarted(SequenceDomain domain, Optional<SessionBoundary> boundary, Path path) {
+    static ProvenanceEvent domainAnalysisStarted(SequenceDomain domain, SessionBoundary boundary, Path path) {
         return new ProvenanceEvent(Instant.now(), "DOMAIN_ANALYSIS_STARTED", domain,
-                boundary.map(SessionBoundary::firstExpectedSequence).orElse(null),
-                boundary.map(SessionBoundary::lastExpectedSequence).orElse(null),
+                boundary == null ? null : boundary.firstExpectedSequence(),
+                boundary == null ? null : boundary.lastExpectedSequence(),
                 path.toString(), null,
-                boundary.isPresent() ? "authoritative boundary available" : "authoritative boundary unavailable");
+                boundary == null ? "authoritative boundary unavailable" : "authoritative boundary available");
     }
 
     static ProvenanceEvent sequenceGap(SequenceDomain domain, Gap gap, Path path) {

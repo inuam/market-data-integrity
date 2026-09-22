@@ -15,7 +15,6 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
-import java.util.Optional;
 
 /**
  * Orchestrates the pipeline: validate+quarantine -> external sort -> group by {@link SequenceDomain} -> gap detection -> provenance.
@@ -63,10 +62,10 @@ public final class HistoricalProcessingService {
                 // DomainIterator streams just this domain's records — never buffers a domain into a list —
                 // so memory stays O(1) per domain even when a single session is too large to fit in RAM.
                 SequenceDomain d = p.peek().domain();
-                Optional<SessionBoundary> boundary = boundaries.findBoundary(d);
+                SessionBoundary boundary = boundaries.findBoundary(d).orElse(null);
                 provenance.append(ProvenanceEvents.domainAnalysisStarted(d, boundary, path));
 
-                QualityReport report = gapDetector.analyze(new DomainIterator(p, d), boundary.orElse(null));
+                QualityReport report = gapDetector.analyze(new DomainIterator(p, d), boundary);
                 reports.add(report);
                 for (Gap g : report.gaps()) {
                     provenance.append(ProvenanceEvents.sequenceGap(d, g, path));

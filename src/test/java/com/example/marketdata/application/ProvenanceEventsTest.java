@@ -8,7 +8,6 @@ import org.junit.jupiter.api.Test;
 
 import java.nio.file.Path;
 import java.util.List;
-import java.util.Optional;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -19,7 +18,7 @@ class ProvenanceEventsTest {
     @Test
     void domainAnalysisStartedRecordsTheAuthoritativeBoundaryWhenPresent() {
         var boundary = new SessionBoundary(d, 100, 200);
-        var event = ProvenanceEvents.domainAnalysisStarted(d, Optional.of(boundary), path);
+        var event = ProvenanceEvents.domainAnalysisStarted(d, boundary, path);
 
         assertThat(event.type()).isEqualTo("DOMAIN_ANALYSIS_STARTED");
         assertThat(event.sequenceFrom()).isEqualTo(100L);
@@ -29,7 +28,7 @@ class ProvenanceEventsTest {
 
     @Test
     void domainAnalysisStartedRecordsAbsenceOfABoundary() {
-        var event = ProvenanceEvents.domainAnalysisStarted(d, Optional.empty(), path);
+        var event = ProvenanceEvents.domainAnalysisStarted(d, null, path);
 
         assertThat(event.sequenceFrom()).isNull();
         assertThat(event.sequenceTo()).isNull();
