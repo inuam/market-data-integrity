@@ -73,6 +73,24 @@ flowchart TB
 4. Use SOLID principles to keep code clean
 5. Keep clean abstraction layers so it simple so the design is supple, easy to change with affecting other layers
 6. Always write unit and integration tests that test behaviour and not methods. Write the in a BDD style
+7. test names should start with should<do/return something>Given<precondition>
+   example of a unit test style
+```java
+  @Test
+  void shouldDetectMissingEdgesFromAuthoritativeBoundary() {
+     // Given
+     var boundary = new SessionBoundary(d, 98, 111);
+
+    // When
+    var report = new StreamingGapDetector().analyze(List.of(r(100), r(101), r(104), r(105), r(109)).iterator(), boundary);
+
+    // Then
+    assertThat(report.expectedFirst()).isEqualTo(98);
+    assertThat(report.expectedLast()).isEqualTo(111);
+    assertThat(report.gaps()).containsExactly(new Gap(d, 98, 99), new Gap(d, 102, 103), new Gap(d, 106, 108), new Gap(d, 110, 111));
+    assertThat(report.missingSequences()).isEqualTo(9);
+   }
+```
  
 
 ## Commands
