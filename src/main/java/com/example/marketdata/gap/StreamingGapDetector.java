@@ -13,6 +13,7 @@ import java.util.*;
  */
 @Component
 public final class StreamingGapDetector implements GapDetector {
+
     @Override
     public QualityReport analyze(Iterator<MarketDataRecord> it, SessionBoundary boundary) {
 
