@@ -44,7 +44,7 @@ public class ChunkedExternalSorter implements RecordSorter {
 
                 chunk.sort(ORDER);
                 Path run = dir.resolve("run-%05d.bin".formatted(runs.size()));
-                writeRun(run, chunk);
+                writeRun(run, chunk); // spill to disk
                 runs.add(run);
             }
             return new MergedIterator(runs, dir);
@@ -85,12 +85,13 @@ public class ChunkedExternalSorter implements RecordSorter {
 
     private static void deleteTree(Path dir) {
         try (var s = Files.walk(dir)) {
-            s.sorted(Comparator.reverseOrder()).forEach(p -> {
-                try {
-                    Files.deleteIfExists(p);
-                } catch (IOException ignored) {
-                }
-            });
+            s.sorted(Comparator.reverseOrder())
+                    .forEach(p -> {
+                        try {
+                            Files.deleteIfExists(p);
+                        } catch (IOException ignored) {
+                        }
+                    });
         } catch (IOException ignored) {
         }
     }
