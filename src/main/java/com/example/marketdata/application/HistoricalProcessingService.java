@@ -1,10 +1,7 @@
 package com.example.marketdata.application;
 
 import com.example.marketdata.boundary.SessionBoundaryProvider;
-import com.example.marketdata.domain.Gap;
-import com.example.marketdata.domain.MarketDataRecord;
-import com.example.marketdata.domain.QualityReport;
-import com.example.marketdata.domain.SequenceDomain;
+import com.example.marketdata.domain.*;
 import com.example.marketdata.gap.GapDetector;
 import com.example.marketdata.provenance.ProvenanceRepository;
 import com.example.marketdata.quality.RecordValidator;
@@ -18,7 +15,14 @@ import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Optional;
 
+/**
+ * Orchestrates the pipeline: validate+quarantine -> external sort -> group by {@link SequenceDomain} -> gap detection -> provenance.
+ * The stage order in {@link #process} is a runtime invariant, not type-enforced — every stage takes/returns a plain
+ * {@code Iterator<MarketDataRecord>}, so reordering or skipping a stage compiles fine and only fails deep inside
+ * {@link com.example.marketdata.gap.StreamingGapDetector} with "Input not sorted".
+ */
 @Service
 public final class HistoricalProcessingService {
     private final VenueAdapterRegistry adapters;
@@ -41,6 +45,11 @@ public final class HistoricalProcessingService {
         this.quarantine = quarantine;
     }
 
+    /**
+     * Reads, validates, sorts, and analyzes {@code path} domain-by-domain. {@link PeekingIterator#peek()} lets each
+     * loop iteration find the next domain's boundary without consuming its first record — that record is left
+     * untouched for {@link DomainIterator} to hand to {@link GapDetector#analyze} as the group's actual first element.
+     */
     public ProcessingResult process(Path path) throws Exception {
         VenueAdapter adapter = adapters.adapterFor(path);
 
@@ -51,12 +60,17 @@ public final class HistoricalProcessingService {
             PeekingIterator p = new PeekingIterator(sorted);
 
             while (p.hasNext()) {
+                // DomainIterator streams just this domain's records — never buffers a domain into a list —
+                // so memory stays O(1) per domain even when a single session is too large to fit in RAM.
                 SequenceDomain d = p.peek().domain();
-                var boundary = boundaries.findBoundary(d);
+                Optional<SessionBoundary> boundary = boundaries.findBoundary(d);
                 provenance.append(ProvenanceEvents.domainAnalysisStarted(d, boundary, path));
+
                 QualityReport report = gapDetector.analyze(new DomainIterator(p, d), boundary.orElse(null));
                 reports.add(report);
-                for (Gap g : report.gaps()) provenance.append(ProvenanceEvents.sequenceGap(d, g, path));
+                for (Gap g : report.gaps()) {
+                    provenance.append(ProvenanceEvents.sequenceGap(d, g, path));
+                }
                 provenance.append(ProvenanceEvents.domainAnalysisCompleted(d, report, path));
             }
 

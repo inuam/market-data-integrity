@@ -76,6 +76,7 @@ class HistoricalProcessingServiceDomainGroupingTest {
      */
     @Test
     void detectorNotFullyConsumingADomainSilentlySplitsItIntoMultiplePartialReports() throws Exception {
+        // Given
         List<MarketDataRecord> records = List.of(r(1), r(2), r(3));
         var service = new HistoricalProcessingService(
                 new VenueAdapterRegistry(List.of(new FixedVenueAdapter(records))),
@@ -88,6 +89,7 @@ class HistoricalProcessingServiceDomainGroupingTest {
                 rejected -> {
                 });
 
+        // When
         var result = service.process(Path.of("irrelevant.csv"));
 
         assertThat(result.reports()).hasSize(3);

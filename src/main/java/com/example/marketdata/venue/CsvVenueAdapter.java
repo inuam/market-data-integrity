@@ -29,6 +29,8 @@ public class CsvVenueAdapter implements VenueAdapter {
     public Stream<MarketDataRecord> read(Path path) throws Exception {
         BufferedReader reader = Files.newBufferedReader(path);
         AtomicLong offset = new AtomicLong();
+        // Streamed lazily line-by-line (never loaded fully into memory) — offset is the logical line number,
+        // used as a sort tie-breaker (see ChunkedExternalSorter.ORDER) so equal-sequence records stay in file order.
         return reader.lines().filter(s -> !s.isBlank() && !s.startsWith("#")).map(line -> {
             long n = offset.getAndIncrement();
             String[] p = line.split(",", -1);
@@ -36,6 +38,7 @@ public class CsvVenueAdapter implements VenueAdapter {
             return new MarketDataRecord(new SequenceDomain(p[0], p[1], p[2]), Long.parseLong(p[3]),
                     Long.parseLong(p[4]), p[5], Long.parseLong(p[6]), Long.parseLong(p[7]), path.toString(), n);
         }).onClose(() -> {
+            // Ties the reader's lifetime to the returned stream's, so closing the stream (try-with-resources) closes the file.
             try {
                 reader.close();
             } catch (Exception ignored) {

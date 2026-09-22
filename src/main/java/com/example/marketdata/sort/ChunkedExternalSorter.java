@@ -10,6 +10,10 @@ import java.util.*;
 
 /**
  * Bounded-memory external merge sorter. Sort key: domain, then sequence, then source provenance.
+ * Classic two-phase external merge sort: (1) {@link #sort} reads the input in bounded chunks, sorts each chunk
+ * in memory, and spills it to disk as a "run"; (2) {@link MergedIterator} k-way merges all runs via a
+ * {@link PriorityQueue} of one-record-per-run {@link Cursor}s, so the fully sorted output is produced without
+ * ever holding more than one chunk (phase 1) or one record per run (phase 2) in memory at once.
  */
 @Component
 public class ChunkedExternalSorter implements RecordSorter {
@@ -30,6 +34,7 @@ public class ChunkedExternalSorter implements RecordSorter {
         Path dir = Files.createTempDirectory("md-sort-");
         List<Path> runs = new ArrayList<>();
         try {
+            // Phase 1: chunk -> sort in memory -> spill to disk as its own sorted run file.
             while (input.hasNext()) {
                 ArrayList<MarketDataRecord> chunk = new ArrayList<>(chunkRecords);
 
@@ -49,6 +54,7 @@ public class ChunkedExternalSorter implements RecordSorter {
         }
     }
 
+    // Explicitly demo-grade codec (writeUTF-based); replace with a fixed-width/columnar format for production scale.
     private static void writeRun(Path file, List<MarketDataRecord> rows) throws IOException {
         try (DataOutputStream out = new DataOutputStream(new BufferedOutputStream(Files.newOutputStream(file)))) {
             for (MarketDataRecord r : rows) write(out, r);
@@ -89,6 +95,7 @@ public class ChunkedExternalSorter implements RecordSorter {
         }
     }
 
+    // One run file's current read position: the next unread record from that run, or null once it's exhausted.
     private static final class Cursor implements Closeable {
         final int id;
         final DataInputStream in;
@@ -109,9 +116,12 @@ public class ChunkedExternalSorter implements RecordSorter {
         }
     }
 
+    // Phase 2: k-way merge. The heap holds at most one Cursor per run, so its size is bounded by the run
+    // count, not the record count — this is what keeps merge-time memory independent of input size.
     private static final class MergedIterator implements Iterator<MarketDataRecord> {
         private final PriorityQueue<Cursor> heap = new PriorityQueue<>((a, b) -> {
             int c = ORDER.compare(a.value, b.value);
+            // Tie-break by run id so the heap has a deterministic total order even if two runs' current records tie.
             return c != 0 ? c : Integer.compare(a.id, b.id);
         });
         private final List<Cursor> cursors = new ArrayList<>();
@@ -135,6 +145,7 @@ public class ChunkedExternalSorter implements RecordSorter {
             if (heap.isEmpty()) throw new NoSuchElementException();
             Cursor c = heap.remove();
             MarketDataRecord out = c.value;
+            // Pop the smallest record, advance that run's cursor, and re-insert it only if it still has data.
             try {
                 c.advance();
                 if (c.value != null) heap.add(c);
