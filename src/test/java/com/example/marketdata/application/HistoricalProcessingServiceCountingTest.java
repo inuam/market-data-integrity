@@ -38,12 +38,7 @@ class HistoricalProcessingServiceCountingTest {
         }
     }
 
-    private static final class FixedVenueAdapter implements VenueAdapter {
-        private final List<MarketDataRecord> records;
-
-        FixedVenueAdapter(List<MarketDataRecord> records) {
-            this.records = records;
-        }
+    private record FixedVenueAdapter(List<MarketDataRecord> records) implements VenueAdapter {
 
         @Override
         public String venue() {
@@ -70,10 +65,9 @@ class HistoricalProcessingServiceCountingTest {
                 new StreamingGapDetector(),
                 rec -> ValidationResult.ok(),
                 domain -> Optional.empty(),
-                event -> {
-                },
-                rejected -> {
-                });
+                event -> {},
+                rejected -> {}
+        );
 
         var result = service.process(Path.of("irrelevant.csv"));
 

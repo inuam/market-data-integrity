@@ -43,28 +43,23 @@ class HistoricalProcessingServiceDomainGroupingTest {
         }
     }
 
-    private static final class FixedVenueAdapter implements VenueAdapter {
-        private final List<MarketDataRecord> records;
-
-        FixedVenueAdapter(List<MarketDataRecord> records) {
-            this.records = records;
-        }
+    private record FixedVenueAdapter(List<MarketDataRecord> records) implements VenueAdapter {
 
         @Override
-        public String venue() {
-            return "X";
-        }
+            public String venue() {
+                return "X";
+            }
 
-        @Override
-        public boolean supports(Path path) {
-            return true;
-        }
+            @Override
+            public boolean supports(Path path) {
+                return true;
+            }
 
-        @Override
-        public Stream<MarketDataRecord> read(Path path) {
-            return records.stream();
+            @Override
+            public Stream<MarketDataRecord> read(Path path) {
+                return records.stream();
+            }
         }
-    }
 
     /**
      * Characterization test: documents a known bug (PLAN.md item 8), it does not assert desired behavior.

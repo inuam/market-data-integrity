@@ -14,7 +14,9 @@ public class VenueAdapterRegistry {
     }
 
     public VenueAdapter adapterFor(Path path) {
-        return adapters.stream().filter(a -> a.supports(path)).findFirst()
+        return adapters.stream()
+                .filter(a -> a.supports(path))
+                .findFirst()
                 .orElseThrow(() -> new IllegalArgumentException("No VenueAdapter supports " + path));
     }
 }
