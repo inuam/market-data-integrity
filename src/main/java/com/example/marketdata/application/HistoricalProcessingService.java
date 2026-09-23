@@ -29,19 +29,19 @@ public final class HistoricalProcessingService {
     private final GapDetector gapDetector;
     private final RecordValidator validator;
     private final SessionBoundaryProvider boundaries;
-    private final ProvenanceRepository provenance;
-    private final QuarantineRepository quarantine;
+    private final ProvenanceRepository provenanceRepo;
+    private final QuarantineRepository quarantineRepo;
 
     public HistoricalProcessingService(VenueAdapterRegistry adapters, RecordSorter sorter, GapDetector gapDetector,
                                        RecordValidator validator, SessionBoundaryProvider boundaries,
-                                       ProvenanceRepository provenance, QuarantineRepository quarantine) {
+                                       ProvenanceRepository provenanceRepo, QuarantineRepository quarantineRepo) {
         this.adapters = adapters;
         this.sorter = sorter;
         this.gapDetector = gapDetector;
         this.validator = validator;
         this.boundaries = boundaries;
-        this.provenance = provenance;
-        this.quarantine = quarantine;
+        this.provenanceRepo = provenanceRepo;
+        this.quarantineRepo = quarantineRepo;
     }
 
     /**
@@ -52,8 +52,8 @@ public final class HistoricalProcessingService {
     public ProcessingResult process(Path path) throws Exception {
         VenueAdapter adapter = adapters.adapterFor(path);
 
-        try (var stream = adapter.read(path)) {
-            var filter = new QuarantiningRecordFilter(stream.iterator(), validator, quarantine, provenance);
+        try (var stream = adapter.read(path)) { // opens a lazy stream (pointer to file)
+            var filter = new QuarantiningRecordFilter(stream.iterator(), validator, quarantineRepo, provenanceRepo);
             Iterator<MarketDataRecord> sorted = sorter.sort(filter);
             List<QualityReport> reports = new ArrayList<>();
             PeekingIterator p = new PeekingIterator(sorted);
@@ -63,14 +63,14 @@ public final class HistoricalProcessingService {
                 // so memory stays O(1) per domain even when a single session is too large to fit in RAM.
                 SequenceDomain d = p.peek().domain();
                 SessionBoundary boundary = boundaries.findBoundary(d).orElse(null);
-                provenance.append(ProvenanceEvents.domainAnalysisStarted(d, boundary, path));
+                provenanceRepo.append(ProvenanceEvents.domainAnalysisStarted(d, boundary, path));
 
                 QualityReport report = gapDetector.analyze(new DomainIterator(p, d), boundary);
                 reports.add(report);
                 for (Gap g : report.gaps()) {
-                    provenance.append(ProvenanceEvents.sequenceGap(d, g, path));
+                    provenanceRepo.append(ProvenanceEvents.sequenceGap(d, g, path));
                 }
-                provenance.append(ProvenanceEvents.domainAnalysisCompleted(d, report, path));
+                provenanceRepo.append(ProvenanceEvents.domainAnalysisCompleted(d, report, path));
             }
 
             return new ProcessingResult(filter.readCount(), filter.quarantinedCount(), List.copyOf(reports));

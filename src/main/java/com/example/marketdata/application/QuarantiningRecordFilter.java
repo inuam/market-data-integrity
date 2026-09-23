@@ -17,19 +17,19 @@ import java.util.NoSuchElementException;
 final class QuarantiningRecordFilter implements Iterator<MarketDataRecord> {
     private final Iterator<MarketDataRecord> source;
     private final RecordValidator validator;
-    private final QuarantineRepository quarantine;
-    private final ProvenanceRepository provenance;
+    private final QuarantineRepository quarantineRepo;
+    private final ProvenanceRepository provenanceRepo;
     private long readCount;
     private long quarantinedCount;
     private MarketDataRecord next;
     private boolean ready;
 
     QuarantiningRecordFilter(Iterator<MarketDataRecord> source, RecordValidator validator,
-                             QuarantineRepository quarantine, ProvenanceRepository provenance) {
+                             QuarantineRepository quarantineRepo, ProvenanceRepository provenanceRepo) {
         this.source = source;
         this.validator = validator;
-        this.quarantine = quarantine;
-        this.provenance = provenance;
+        this.quarantineRepo = quarantineRepo;
+        this.provenanceRepo = provenanceRepo;
     }
 
     long readCount() {
@@ -50,8 +50,8 @@ final class QuarantiningRecordFilter implements Iterator<MarketDataRecord> {
                 ready = true;
             } else {
                 quarantinedCount++;
-                quarantine.save(new QuarantinedRecord(Instant.now(), r, result.reason(), validator.getClass().getSimpleName()));
-                provenance.append(new ProvenanceEvent(Instant.now(), "RECORD_QUARANTINED", r.domain(),
+                quarantineRepo.save(new QuarantinedRecord(Instant.now(), r, result.reason(), validator.getClass().getSimpleName()));
+                provenanceRepo.append(new ProvenanceEvent(Instant.now(), "RECORD_QUARANTINED", r.domain(),
                         r.sequence(), r.sequence(), r.sourceFile(), r.sourceOffset(), result.reason()));
             }
         }
