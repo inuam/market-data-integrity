@@ -45,9 +45,9 @@ public final class HistoricalProcessingService {
     }
 
     /**
-     * Reads, validates, sorts, and analyzes {@code path} domain-by-domain. {@link PeekingIterator#peek()} lets each
-     * loop iteration find the next domain's boundary without consuming its first record — that record is left
-     * untouched for {@link DomainIterator} to hand to {@link GapDetector#analyze} as the group's actual first element.
+     * Reads, validates, sorts, and analyzes {@code path} domain-by-domain. {@link DomainGroupingIterator} splits
+     * the sorted stream into contiguous per-{@link SequenceDomain} groups via single-item lookahead, handing each
+     * group's records to {@link GapDetector#analyze}.
      */
     public ProcessingResult process(Path path) throws Exception {
         VenueAdapter adapter = adapters.adapterFor(path);
@@ -56,23 +56,21 @@ public final class HistoricalProcessingService {
             var filter = new QuarantiningRecordFilter(stream.iterator(), validator, quarantineRepo, provenanceRepo);
 
             Iterator<MarketDataRecord> sorted = sorter.sort(filter);
-            PeekingIterator peekingIterator = new PeekingIterator(sorted);
+            DomainGroupingIterator domains = new DomainGroupingIterator(sorted);
 
             List<QualityReport> reports = new ArrayList<>();
 
-            while (peekingIterator.hasNext()) {
-                // DomainIterator streams just this domain's records — never buffers a domain into a list —
-                // so memory stays O(1) per domain even when a single session is too large to fit in RAM.
-                SequenceDomain sequenceDomain = peekingIterator.peek().domain();
-                SessionBoundary boundary = boundaries.findBoundary(sequenceDomain).orElse(null);
-                provenanceRepo.append(ProvenanceEvents.domainAnalysisStarted(sequenceDomain, boundary, path));
+            while (domains.hasNext()) {
+                DomainGroup group = domains.next();
+                SessionBoundary boundary = boundaries.findBoundary(group.domain()).orElse(null);
+                provenanceRepo.append(ProvenanceEvents.domainAnalysisStarted(group.domain(), boundary, path));
 
-                QualityReport report = gapDetector.analyze(new DomainIterator(peekingIterator, sequenceDomain), boundary);
+                QualityReport report = gapDetector.analyze(group.records(), boundary);
                 reports.add(report);
                 for (Gap gap : report.gaps()) {
-                    provenanceRepo.append(ProvenanceEvents.sequenceGap(sequenceDomain, gap, path));
+                    provenanceRepo.append(ProvenanceEvents.sequenceGap(group.domain(), gap, path));
                 }
-                provenanceRepo.append(ProvenanceEvents.domainAnalysisCompleted(sequenceDomain, report, path));
+                provenanceRepo.append(ProvenanceEvents.domainAnalysisCompleted(group.domain(), report, path));
             }
 
             return new ProcessingResult(filter.readCount(), filter.quarantinedCount(), List.copyOf(reports));

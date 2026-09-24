@@ -126,7 +126,7 @@ VenueAdapter -> RecordValidator -> quarantine (invalid records) -> RecordSorter 
              -> ProvenanceRepository (append-only audit) -> QualityReport
 ```
 
-`HistoricalProcessingService` (`application/`) wires this together. It lazily filters invalid records into quarantine via a custom `Iterator` wrapper *before* they reach the sorter, then feeds the sorted stream through a `PeekingIterator`/`DomainIterator` pair that splits it into contiguous per-`SequenceDomain` sub-iterators for the gap detector — this is the key mechanism to understand before touching that class.
+`HistoricalProcessingService` (`application/`) wires this together. It lazily filters invalid records into quarantine via a custom `Iterator` wrapper *before* they reach the sorter, then feeds the sorted stream through `DomainGroupingIterator`, which splits it into contiguous per-`SequenceDomain` groups (via single-item lookahead) for the gap detector — this is the key mechanism to understand before touching that class.
 
 A `SequenceDomain` is `(venue, channel, session)`. Sequence numbers are only meaningful within one domain; unrelated domains must never be compared or merged.
 
