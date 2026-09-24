@@ -74,6 +74,7 @@ final class MergedIterator implements Iterator<MarketDataRecord> {
             try {
                 c.close();
             } catch (IOException ignored) {
+                log.error("Unable to close cursor during merge (run id={})", c.id);
             }
         TempRuns.deleteTree(dir);
     }
