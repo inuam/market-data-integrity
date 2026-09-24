@@ -1,6 +1,8 @@
 package com.example.marketdata.gap;
 
 import com.example.marketdata.domain.*;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Component;
 
 import java.util.*;
@@ -13,17 +15,23 @@ import java.util.*;
  */
 @Component
 public final class StreamingGapDetector implements GapDetector {
+    private static final Logger log = LoggerFactory.getLogger(StreamingGapDetector.class);
 
     @Override
     public QualityReport analyze(Iterator<MarketDataRecord> it, SessionBoundary boundary) {
 
-        if (!it.hasNext()) throw new IllegalArgumentException("Empty domain");
+        if (!it.hasNext()) {
+            log.error("Gap analysis invoked with an empty domain iterator");
+            throw new IllegalArgumentException("Empty domain");
+        }
 
         // Read outside the loop to seed domain/min/previous — the loop's comparisons are meaningless without a first value.
         MarketDataRecord first = it.next();
         SequenceDomain domain = first.domain();
-        if (boundary != null && !boundary.domain().equals(domain))
+        if (boundary != null && !boundary.domain().equals(domain)) {
+            log.error("Boundary domain mismatch: boundary={} recordDomain={}", boundary.domain(), domain);
             throw new IllegalArgumentException("Boundary domain mismatch");
+        }
 
         long min = first.sequence(), max = min, previous = min, total = 1, unique = 1, duplicates = 0, missing = 0, largest = 0;
         List<Gap> gaps = new ArrayList<>();
@@ -38,7 +46,10 @@ public final class StreamingGapDetector implements GapDetector {
         while (it.hasNext()) {
             MarketDataRecord marketDataRecord = it.next();
             total++;
-            if (!domain.equals(marketDataRecord.domain())) throw new IllegalArgumentException("Mixed sequence domains");
+            if (!domain.equals(marketDataRecord.domain())) {
+                log.error("Mixed sequence domains encountered mid-scan: expected={} actual={}", domain, marketDataRecord.domain());
+                throw new IllegalArgumentException("Mixed sequence domains");
+            }
             long currentSeq = marketDataRecord.sequence();
             max = Math.max(max, currentSeq);
             if (currentSeq == previous) {
@@ -48,7 +59,10 @@ public final class StreamingGapDetector implements GapDetector {
                 continue;
             }
 
-            if (currentSeq < previous) throw new IllegalArgumentException("Input not sorted: " + currentSeq + " after " + previous);
+            if (currentSeq < previous) {
+                log.error("Input not sorted for domain {}: {} after {}", domain, currentSeq, previous);
+                throw new IllegalArgumentException("Input not sorted: " + currentSeq + " after " + previous);
+            }
 
             unique++;
             if (currentSeq > previous + 1) {

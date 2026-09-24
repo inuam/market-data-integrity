@@ -1,6 +1,8 @@
 package com.example.marketdata.sort;
 
 import com.example.marketdata.domain.MarketDataRecord;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.BufferedInputStream;
 import java.io.Closeable;
@@ -22,6 +24,8 @@ import java.util.PriorityQueue;
  * independent of input size.
  */
 final class MergedIterator implements Iterator<MarketDataRecord> {
+    private static final Logger log = LoggerFactory.getLogger(MergedIterator.class);
+
     private final PriorityQueue<Cursor> heap = new PriorityQueue<>((a, b) -> {
         int c = ChunkedExternalSorter.ORDER.compare(a.value, b.value);
         // Tie-break by run id so the heap has a deterministic total order even if two runs' current records tie.
@@ -58,6 +62,7 @@ final class MergedIterator implements Iterator<MarketDataRecord> {
                 if (heap.isEmpty()) cleanup();
             }
         } catch (IOException e) {
+            log.error("Failed to read next record during k-way merge (run id={})", c.id, e);
             cleanup();
             throw new UncheckedIOException(e);
         }

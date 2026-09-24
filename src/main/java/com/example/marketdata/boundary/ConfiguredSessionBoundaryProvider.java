@@ -2,6 +2,8 @@ package com.example.marketdata.boundary;
 
 import com.example.marketdata.domain.SequenceDomain;
 import com.example.marketdata.domain.SessionBoundary;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -16,6 +18,8 @@ import java.util.*;
  */
 @Component
 public final class ConfiguredSessionBoundaryProvider implements SessionBoundaryProvider {
+    private static final Logger log = LoggerFactory.getLogger(ConfiguredSessionBoundaryProvider.class);
+
     private final Map<SequenceDomain, SessionBoundary> boundaries;
 
     public ConfiguredSessionBoundaryProvider(@Value("${market-data.boundaries-file:./config/session-boundaries.csv}") String file) {
@@ -33,11 +37,15 @@ public final class ConfiguredSessionBoundaryProvider implements SessionBoundaryP
         try (var lines = Files.lines(path)) {
             lines.skip(1).filter(s -> !s.isBlank() && !s.startsWith("#")).forEach(line -> {
                 String[] p = line.split(",", -1);
-                if (p.length != 5) throw new IllegalArgumentException("Bad boundary row: " + line);
+                if (p.length != 5) {
+                    log.error("Bad boundary row in {}: {}", path, line);
+                    throw new IllegalArgumentException("Bad boundary row: " + line);
+                }
                 SequenceDomain d = new SequenceDomain(p[0].trim(), p[1].trim(), p[2].trim());
                 result.put(d, new SessionBoundary(d, Long.parseLong(p[3].trim()), Long.parseLong(p[4].trim())));
             });
         } catch (IOException e) {
+            log.error("Cannot read boundaries file {}", path, e);
             throw new IllegalStateException("Cannot read boundaries " + path, e);
         }
         return Map.copyOf(result);

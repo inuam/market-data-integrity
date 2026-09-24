@@ -1,5 +1,7 @@
 package com.example.marketdata.provenance;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Repository;
 
@@ -12,6 +14,8 @@ import java.nio.file.*;
  */
 @Repository
 public final class FileProvenanceRepository implements ProvenanceRepository {
+    private static final Logger log = LoggerFactory.getLogger(FileProvenanceRepository.class);
+
     private final Path path;
 
     public FileProvenanceRepository(@Value("${market-data.provenance-file:./data/provenance.tsv}") String file) {
@@ -26,7 +30,9 @@ public final class FileProvenanceRepository implements ProvenanceRepository {
             String row = String.join("\t", esc(e.occurredAt()), esc(e.type()), esc(e.domain().venue()), esc(e.domain().channel()),
                     esc(e.domain().session()), esc(e.sequenceFrom()), esc(e.sequenceTo()), esc(e.sourceFile()), esc(e.sourceOffset()), esc(e.detail())) + "\n";
             Files.writeString(path, row, StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+            log.debug("Provenance event appended: type={} domain={} seqFrom={} seqTo={}", e.type(), e.domain(), e.sequenceFrom(), e.sequenceTo());
         } catch (IOException ex) {
+            log.error("Failed to append provenance event type={} domain={} to {}", e.type(), e.domain(), path, ex);
             throw new UncheckedIOException(ex);
         }
     }

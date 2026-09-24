@@ -1,5 +1,7 @@
 package com.example.marketdata.quarantine;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Repository;
 
@@ -9,6 +11,8 @@ import java.nio.file.*;
 
 @Repository
 public final class FileQuarantineRepository implements QuarantineRepository {
+    private static final Logger log = LoggerFactory.getLogger(FileQuarantineRepository.class);
+
     private final Path path;
 
     public FileQuarantineRepository(@Value("${market-data.quarantine-file:./data/quarantine.tsv}") String file) {
@@ -25,7 +29,9 @@ public final class FileQuarantineRepository implements QuarantineRepository {
                     esc(r.sequence()), esc(r.eventTimeNanos()), esc(r.instrument()), esc(r.priceMantissa()), esc(r.quantity()), esc(r.sourceFile()),
                     esc(r.sourceOffset()), esc(q.reason()), esc(q.validator())) + "\n";
             Files.writeString(path, row, StandardCharsets.UTF_8, StandardOpenOption.CREATE, StandardOpenOption.APPEND);
+            log.warn("Record quarantined: domain={} sequence={} reason={} validator={}", r.domain(), r.sequence(), q.reason(), q.validator());
         } catch (IOException ex) {
+            log.error("Failed to persist quarantined record: domain={} sequence={} to {}", r.domain(), r.sequence(), path, ex);
             throw new UncheckedIOException(ex);
         }
     }
