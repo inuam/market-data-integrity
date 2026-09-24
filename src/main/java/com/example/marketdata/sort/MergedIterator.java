@@ -51,8 +51,9 @@ final class MergedIterator implements Iterator<MarketDataRecord> {
         // Pop the smallest record, advance that run's cursor, and re-insert it only if it still has data.
         try {
             c.advance();
-            if (c.value != null) heap.add(c);
-            else {
+            if (c.value != null) {
+                heap.add(c);
+            } else {
                 c.close();
                 if (heap.isEmpty()) cleanup();
             }

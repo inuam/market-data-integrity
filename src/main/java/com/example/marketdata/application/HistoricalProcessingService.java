@@ -56,23 +56,23 @@ public final class HistoricalProcessingService {
             var filter = new QuarantiningRecordFilter(stream.iterator(), validator, quarantineRepo, provenanceRepo);
 
             Iterator<MarketDataRecord> sorted = sorter.sort(filter);
-            PeekingIterator p = new PeekingIterator(sorted);
+            PeekingIterator peekingIterator = new PeekingIterator(sorted);
 
             List<QualityReport> reports = new ArrayList<>();
 
-            while (p.hasNext()) {
+            while (peekingIterator.hasNext()) {
                 // DomainIterator streams just this domain's records — never buffers a domain into a list —
                 // so memory stays O(1) per domain even when a single session is too large to fit in RAM.
-                SequenceDomain d = p.peek().domain();
-                SessionBoundary boundary = boundaries.findBoundary(d).orElse(null);
-                provenanceRepo.append(ProvenanceEvents.domainAnalysisStarted(d, boundary, path));
+                SequenceDomain sequenceDomain = peekingIterator.peek().domain();
+                SessionBoundary boundary = boundaries.findBoundary(sequenceDomain).orElse(null);
+                provenanceRepo.append(ProvenanceEvents.domainAnalysisStarted(sequenceDomain, boundary, path));
 
-                QualityReport report = gapDetector.analyze(new DomainIterator(p, d), boundary);
+                QualityReport report = gapDetector.analyze(new DomainIterator(peekingIterator, sequenceDomain), boundary);
                 reports.add(report);
-                for (Gap g : report.gaps()) {
-                    provenanceRepo.append(ProvenanceEvents.sequenceGap(d, g, path));
+                for (Gap gap : report.gaps()) {
+                    provenanceRepo.append(ProvenanceEvents.sequenceGap(sequenceDomain, gap, path));
                 }
-                provenanceRepo.append(ProvenanceEvents.domainAnalysisCompleted(d, report, path));
+                provenanceRepo.append(ProvenanceEvents.domainAnalysisCompleted(sequenceDomain, report, path));
             }
 
             return new ProcessingResult(filter.readCount(), filter.quarantinedCount(), List.copyOf(reports));

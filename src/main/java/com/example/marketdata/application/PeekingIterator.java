@@ -9,31 +9,31 @@ import java.util.Iterator;
  */
 final class PeekingIterator implements Iterator<MarketDataRecord> {
     private final Iterator<MarketDataRecord> delegate;
-    private MarketDataRecord peeked;
-    private boolean hasPeeked;
+    private MarketDataRecord nextItem;
+    private boolean hasNextItem;
 
     PeekingIterator(Iterator<MarketDataRecord> delegate) {
         this.delegate = delegate;
     }
 
     MarketDataRecord peek() {
-        if (!hasPeeked) {
-            peeked = delegate.next();
-            hasPeeked = true;
+        if (!hasNextItem) {
+            nextItem = delegate.next();
+            hasNextItem = true;
         }
-        return peeked;
+        return nextItem;
     }
 
     @Override
     public boolean hasNext() {
-        return hasPeeked || delegate.hasNext();
+        return hasNextItem || delegate.hasNext();
     }
 
     @Override
     public MarketDataRecord next() {
-        if (hasPeeked) {
-            hasPeeked = false;
-            return peeked;
+        if (hasNextItem) {
+            hasNextItem = false;
+            return nextItem;
         }
         return delegate.next();
     }
