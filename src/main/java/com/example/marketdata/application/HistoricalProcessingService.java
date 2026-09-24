@@ -54,9 +54,11 @@ public final class HistoricalProcessingService {
 
         try (var stream = adapter.read(path)) { // opens a lazy stream (pointer to file)
             var filter = new QuarantiningRecordFilter(stream.iterator(), validator, quarantineRepo, provenanceRepo);
+
             Iterator<MarketDataRecord> sorted = sorter.sort(filter);
-            List<QualityReport> reports = new ArrayList<>();
             PeekingIterator p = new PeekingIterator(sorted);
+
+            List<QualityReport> reports = new ArrayList<>();
 
             while (p.hasNext()) {
                 // DomainIterator streams just this domain's records — never buffers a domain into a list —
