@@ -45,7 +45,7 @@ public final class HistoricalProcessingService {
     }
 
     /**
-     * Reads, validates, sorts, and analyzes {@code path} domain-by-domain. {@link DomainGroupingIterator} splits
+     * Reads, validates, sorts, and analyzes {@code path} domain-by-domain. {@link PeekingIterator} splits
      * the sorted stream into contiguous per-{@link SequenceDomain} groups via single-item lookahead, handing each
      * group's records to {@link GapDetector#analyze}.
      */
@@ -56,7 +56,7 @@ public final class HistoricalProcessingService {
             var filter = new QuarantiningRecordFilter(stream.iterator(), validator, quarantineRepo, provenanceRepo);
 
             Iterator<MarketDataRecord> sorted = sorter.sort(filter);
-            DomainGroupingIterator domains = new DomainGroupingIterator(sorted);
+            PeekingIterator domains = new PeekingIterator(sorted);
 
             List<QualityReport> reports = new ArrayList<>();
 

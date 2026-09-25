@@ -15,12 +15,12 @@ import java.util.NoSuchElementException;
  * The caller must fully drain each group's iterator before calling {@link #next()} again; an abandoned
  * group leaves its unread records stuck behind it.
  */
-final class DomainGroupingIterator implements Iterator<DomainGroup> {
+final class PeekingIterator implements Iterator<DomainGroup> {
     private final Iterator<MarketDataRecord> source;
     private MarketDataRecord nextItem;
     private boolean hasNextItem;
 
-    DomainGroupingIterator(Iterator<MarketDataRecord> source) {
+    PeekingIterator(Iterator<MarketDataRecord> source) {
         this.source = source;
     }
 
@@ -41,22 +41,30 @@ final class DomainGroupingIterator implements Iterator<DomainGroup> {
     public DomainGroup next() {
         if (!hasNext()) throw new NoSuchElementException();
         SequenceDomain domain = peek().domain();
+        return new DomainGroup(domain, new GroupRecords(domain));
+    }
 
-        return new DomainGroup(domain, new Iterator<>() {
-            @Override
-            public boolean hasNext() {
-                return DomainGroupingIterator.this.hasNext() && peek().domain().equals(domain);
-            }
+    /** One domain's records, drawn from the shared lookahead cursor until the domain changes. */
+    private final class GroupRecords implements Iterator<MarketDataRecord> {
+        private final SequenceDomain domain;
 
-            @Override
-            public MarketDataRecord next() {
-                if (!hasNext()) throw new NoSuchElementException();
-                if (hasNextItem) {
-                    hasNextItem = false;
-                    return nextItem;
-                }
-                return source.next();
+        GroupRecords(SequenceDomain domain) {
+            this.domain = domain;
+        }
+
+        @Override
+        public boolean hasNext() {
+            return PeekingIterator.this.hasNext() && peek().domain().equals(domain);
+        }
+
+        @Override
+        public MarketDataRecord next() {
+            if (!hasNext()) throw new NoSuchElementException();
+            if (hasNextItem) {
+                hasNextItem = false;
+                return nextItem;
             }
-        });
+            return source.next();
+        }
     }
 }

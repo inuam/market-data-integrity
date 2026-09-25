@@ -34,13 +34,16 @@ public final class ConfiguredSessionBoundaryProvider implements SessionBoundaryP
     private static Map<SequenceDomain, SessionBoundary> load(Path path) {
         if (!Files.exists(path)) return Map.of();
         Map<SequenceDomain, SessionBoundary> result = new HashMap<>();
+
         try (var lines = Files.lines(path)) {
             lines.skip(1).filter(s -> !s.isBlank() && !s.startsWith("#")).forEach(line -> {
                 String[] p = line.split(",", -1);
+
                 if (p.length != 5) {
                     log.error("Bad boundary row in {}: {}", path, line);
                     throw new IllegalArgumentException("Bad boundary row: " + line);
                 }
+
                 SequenceDomain d = new SequenceDomain(p[0].trim(), p[1].trim(), p[2].trim());
                 result.put(d, new SessionBoundary(d, Long.parseLong(p[3].trim()), Long.parseLong(p[4].trim())));
             });

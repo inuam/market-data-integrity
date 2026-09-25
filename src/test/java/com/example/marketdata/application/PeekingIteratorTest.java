@@ -11,7 +11,7 @@ import java.util.NoSuchElementException;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
-class DomainGroupingIteratorTest {
+class PeekingIteratorTest {
     private final SequenceDomain a = new SequenceDomain("A", "1", "S");
     private final SequenceDomain b = new SequenceDomain("B", "1", "S");
 
@@ -21,7 +21,7 @@ class DomainGroupingIteratorTest {
 
     @Test
     void shouldYieldOnlyRecordsBelongingToTheGroupsDomainGivenAGroupsIterator() {
-        var groups = new DomainGroupingIterator(List.of(r(a, 1), r(a, 2), r(b, 1)).iterator());
+        var groups = new PeekingIterator(List.of(r(a, 1), r(a, 2), r(b, 1)).iterator());
 
         DomainGroup group = groups.next();
 
@@ -34,7 +34,7 @@ class DomainGroupingIteratorTest {
 
     @Test
     void shouldExposeTheNextDomainsFirstRecordGivenThePreviousGroupWasFullyDrained() {
-        var groups = new DomainGroupingIterator(List.of(r(a, 1), r(b, 1)).iterator());
+        var groups = new PeekingIterator(List.of(r(a, 1), r(b, 1)).iterator());
         DomainGroup first = groups.next();
         while (first.records().hasNext()) first.records().next();
 
@@ -47,7 +47,7 @@ class DomainGroupingIteratorTest {
 
     @Test
     void shouldThrowWhenAskedForMoreThanTheGroupsDomainContains() {
-        var groups = new DomainGroupingIterator(List.of(r(a, 1)).iterator());
+        var groups = new PeekingIterator(List.of(r(a, 1)).iterator());
         DomainGroup group = groups.next();
         group.records().next();
 
@@ -56,7 +56,7 @@ class DomainGroupingIteratorTest {
 
     @Test
     void shouldYieldEachDomainExactlyOnceGivenMultipleContiguousDomains() {
-        var groups = new DomainGroupingIterator(List.of(r(a, 1), r(a, 2), r(b, 1), r(b, 2)).iterator());
+        var groups = new PeekingIterator(List.of(r(a, 1), r(a, 2), r(b, 1), r(b, 2)).iterator());
 
         List<SequenceDomain> seen = new ArrayList<>();
         while (groups.hasNext()) {
@@ -70,7 +70,7 @@ class DomainGroupingIteratorTest {
 
     @Test
     void shouldThrowWhenAskedForMoreGroupsThanTheSourceContains() {
-        var groups = new DomainGroupingIterator(List.of(r(a, 1)).iterator());
+        var groups = new PeekingIterator(List.of(r(a, 1)).iterator());
         DomainGroup group = groups.next();
         while (group.records().hasNext()) group.records().next();
 
