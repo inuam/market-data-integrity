@@ -10,6 +10,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.List;
@@ -48,9 +49,10 @@ public class ChunkedExternalSorter implements RecordSorter {
                     chunk.add(input.next());
                 }
 
-                chunk.sort(ORDER);
+                MarketDataRecord[] sorted = chunk.toArray(new MarketDataRecord[0]);
+                Arrays.parallelSort(sorted, ORDER); // fork/join across cores; falls back to sequential for small chunks
                 Path run = dir.resolve("run-%05d.bin".formatted(runs.size()));
-                writeRun(run, chunk); // spill to disk
+                writeRun(run, Arrays.asList(sorted)); // spill to disk
                 runs.add(run);
             }
             return new MergedIterator(runs, dir);
