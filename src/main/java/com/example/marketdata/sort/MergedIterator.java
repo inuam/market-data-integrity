@@ -83,16 +83,18 @@ final class MergedIterator implements Iterator<MarketDataRecord> {
     private static final class Cursor implements Closeable {
         final int id;
         final DataInputStream in;
+        final String[] dictionary;
         MarketDataRecord value;
 
         Cursor(int id, Path p) throws IOException {
             this.id = id;
             this.in = new DataInputStream(new BufferedInputStream(Files.newInputStream(p)));
-            value = RecordCodec.read(in);
+            this.dictionary = RecordCodec.readDictionary(in);
+            value = RecordCodec.read(in, dictionary);
         }
 
         void advance() throws IOException {
-            value = RecordCodec.read(in);
+            value = RecordCodec.read(in, dictionary);
         }
 
         public void close() throws IOException {
